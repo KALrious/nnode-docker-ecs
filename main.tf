@@ -1,15 +1,33 @@
 provider "aws" {
   version = "~> 2.0"
-  region  = "eu-west-2" # Setting my region to London. Use your own region here
+  region  = "eu-west-2"
+}
+
+# Providing a reference to our default VPC
+resource "aws_default_vpc" "default_vpc" {
+}
+
+# Providing a reference to our default subnets
+resource "aws_default_subnet" "default_subnet_a" {
+  availability_zone = "eu-west-2a"
+}
+
+resource "aws_default_subnet" "default_subnet_b" {
+  availability_zone = "eu-west-2b"
+}
+
+resource "aws_default_subnet" "default_subnet_c" {
+  availability_zone = "eu-west-2c"
 }
 
 resource "aws_ecr_repository" "my_first_ecr_repo" {
-  name = "my-first-ecr-repo" # Naming my repository
+  name = "my-first-ecr-repo"
 }
 
 resource "aws_ecs_cluster" "my_cluster" {
   name = "my-cluster" # Naming the cluster
 }
+
 
 resource "aws_ecs_task_definition" "my_first_task" {
   family                   = "my-first-task" # Naming our first task
@@ -58,24 +76,6 @@ resource "aws_iam_role_policy_attachment" "ecsTaskExecutionRole_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-
-# Providing a reference to our default VPC
-resource "aws_default_vpc" "default_vpc" {
-}
-
-# Providing a reference to our default subnets
-resource "aws_default_subnet" "default_subnet_a" {
-  availability_zone = "eu-west-2a"
-}
-
-resource "aws_default_subnet" "default_subnet_b" {
-  availability_zone = "eu-west-2b"
-}
-
-resource "aws_default_subnet" "default_subnet_c" {
-  availability_zone = "eu-west-2c"
-}
-
 resource "aws_alb" "application_load_balancer" {
   name               = "test-lb-tf" # Naming our load balancer
   load_balancer_type = "application"
@@ -91,17 +91,17 @@ resource "aws_alb" "application_load_balancer" {
 # Creating a security group for the load balancer:
 resource "aws_security_group" "load_balancer_security_group" {
   ingress {
-    from_port   = 80 # Allowing traffic in from port 80
+    from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"] # Allowing traffic in from all sources
   }
 
   egress {
-    from_port   = 0 # Allowing any incoming port
-    to_port     = 0 # Allowing any outgoing port
-    protocol    = "-1" # Allowing any outgoing protocol 
-    cidr_blocks = ["0.0.0.0/0"] # Allowing traffic out to all IP addresses
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
@@ -138,9 +138,11 @@ resource "aws_ecs_service" "my_first_service" {
 
   network_configuration {
     subnets          = ["${aws_default_subnet.default_subnet_a.id}", "${aws_default_subnet.default_subnet_b.id}", "${aws_default_subnet.default_subnet_c.id}"]
-    assign_public_ip = true # Providing our containers with public IPs
+    assign_public_ip = true                                                # Providing our containers with public IPs
+    security_groups  = ["${aws_security_group.service_security_group.id}"] # Setting the security group
   }
 }
+
 
 resource "aws_security_group" "service_security_group" {
   ingress {
@@ -152,9 +154,9 @@ resource "aws_security_group" "service_security_group" {
   }
 
   egress {
-    from_port   = 0 # Allowing any incoming port
-    to_port     = 0 # Allowing any outgoing port
-    protocol    = "-1" # Allowing any outgoing protocol 
-    cidr_blocks = ["0.0.0.0/0"] # Allowing traffic out to all IP addresses
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
